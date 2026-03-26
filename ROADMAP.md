@@ -45,6 +45,16 @@
 **Effort:** 2-3 days
 **Impact:** Makes semantic routing meaningful at scale
 
+**Success Criteria:**
+- [ ] 1,000+ documents in archive
+- [ ] Clustering produces 10+ topic clusters
+- [ ] Query latency < 500ms with full archive
+- [ ] Archive manifest generated automatically
+
+**Risks:**
+- Embedding 1000 docs may take hours → use batch processing
+- UMAP projection may not be meaningful → test with known clusters first
+
 ---
 
 ## Phase 2: Streaming Attention
@@ -88,6 +98,16 @@ def stream_inference(query):
 **Effort:** 3-4 days
 **Impact:** See the AI "think" in real-time
 
+**Success Criteria:**
+- [ ] Token-by-token saccade animation working
+- [ ] < 100ms latency per token
+- [ ] TUI updates smoothly (30+ fps)
+- [ ] Streaming works with all sentence-transformer models
+
+**Risks:**
+- Python GIL may limit streaming speed → consider multiprocessing
+- Attention extraction may slow inference → cache intermediate results
+
 ---
 
 ## Phase 3: Multi-Model Support
@@ -121,6 +141,16 @@ bin/
 
 **Effort:** 4-5 days
 **Impact:** Compare model "thinking styles"
+
+**Success Criteria:**
+- [ ] 3+ models supported (distilgpt2, gpt2, TinyLlama)
+- [ ] Side-by-side TUI comparison working
+- [ ] Model switching without restart
+- [ ] Attention diff highlighting
+
+**Risks:**
+- Different architectures may need custom attention extraction
+- Large models (Phi-2) may be slow on CPU → require GPU
 
 ---
 
@@ -163,6 +193,16 @@ openmind/
 **Effort:** 1-2 weeks
 **Impact:** Accessible to non-technical users
 
+**Success Criteria:**
+- [ ] Cortex visualization in browser (clickable, zoomable)
+- [ ] Document panel shows full text + embedding
+- [ ] WebSocket streaming at 30+ fps
+- [ ] Works in Chrome, Firefox, Safari
+
+**Risks:**
+- D3.js performance with 80k tiles → use WebGL or canvas
+- WebSocket complexity → use Socket.io or similar library
+
 ---
 
 ## Phase 5: Conversation Mode
@@ -201,6 +241,16 @@ class ConversationContext:
 **Effort:** 1 week
 **Impact:** Understand context usage in LLMs
 
+**Success Criteria:**
+- [ ] Multi-turn conversation history stored
+- [ ] Memory heatmap visualization
+- [ ] Context window boundary shown
+- [ ] Attention comparison across turns
+
+**Risks:**
+- Context window limits may truncate history → implement sliding window
+- Memory visualization may be cluttered → add filtering options
+
 ---
 
 ## Phase 6: Fine-Tuning Visualization
@@ -235,6 +285,17 @@ render_weight_evolution(snapshots)
 **Effort:** 2 weeks
 **Impact:** Understand how training shapes attention
 
+**Success Criteria:**
+- [ ] Weight snapshots captured during training
+- [ ] Before/after cortex comparison
+- [ ] Diff view showing changed tiles
+- [ ] Animation of weight evolution
+
+**Risks:**
+- Snapshot storage may be large → compress or sample
+- LoRA extraction may need custom implementation
+- Training may crash → implement checkpoint recovery
+
 ---
 
 ## Phase 7: Educational Mode
@@ -262,6 +323,16 @@ lessons/
 **Effort:** 1-2 weeks
 **Impact:** Educational value, wider audience
 
+**Success Criteria:**
+- [ ] 5+ guided lessons implemented
+- [ ] Interactive exercises working
+- [ ] Quiz mode with scoring
+- [ ] Plain-language explanations for all visualizations
+
+**Risks:**
+- Content creation is time-consuming → use LLM to draft lessons
+- Quiz answers may be ambiguous → test with real users
+
 ---
 
 ## Phase 8: Research Integration
@@ -284,29 +355,78 @@ lessons/
 **Effort:** Ongoing
 **Impact:** Academic citations, research collaborations
 
+**Success Criteria:**
+- [ ] Export to CSV/JSON for statistical analysis
+- [ ] Attention head decomposition working
+- [ ] Cross-language comparison supported
+- [ ] Research paper citation ready
+
+**Risks:**
+- Academic adoption may be slow → publish blog posts first
+- Research features may not match user needs → survey researchers
+
 ---
+
+## Version Milestones
+
+| Version | Phases | Deliverable | Target |
+|---------|--------|-------------|--------|
+| v1.1 | 1 + 2 | Real data + streaming TUI | 1 week |
+| v1.5 | 3 + 4 | Multi-model + web dashboard | 3 weeks |
+| v2.0 | 5 + 6 | Conversation + fine-tuning viz | 6 weeks |
+| v2.5 | 7 + 8 | Educational + research tools | Ongoing |
+
+## Dependencies
+
+```
+v1.0 ──► Phase 1 (Real Data) ──► Phase 2 (Streaming)
+                                   │
+                                   ▼
+                     Phase 4 (Web Dashboard) ──► Phase 3 (Multi-Model)
+                                                   │
+                                                   ▼
+                                 Phase 5 (Conversation) ──► Phase 6 (Fine-Tuning)
+                                                                │
+                                                                ▼
+                                              Phase 7 (Education) ◄── Phase 8 (Research)
+```
+
+**Critical Path:** 1 → 2 → 4 → 5 (longest chain to v2.0)
 
 ## Priority Matrix
 
-```
-                    High Impact
-                        │
-         Phase 1 ●      │      ● Phase 2
-         (Real Data)    │      (Streaming)
-                        │
-    Phase 7 ●           │           ● Phase 4
-    (Education)         │           (Web Dashboard)
-                        │
-Low Effort ─────────────┼───────────── High Effort
-                        │
-         Phase 3 ●      │      ● Phase 5
-         (Multi-Model)  │      (Conversation)
-                        │
-         Phase 8 ●      │      ● Phase 6
-         (Research)     │      (Fine-Tuning)
-                        │
-                    Low Impact
-```
+| Phase | Effort | Impact | Dependencies | Priority Score |
+|-------|--------|--------|--------------|----------------|
+| 1. Real Data | 2d | HIGH | None | **9.0** ⭐ |
+| 2. Streaming | 4d | HIGH | Phase 1 | **8.5** ⭐ |
+| 4. Web Dashboard | 2w | HIGH | Phase 2 | **7.5** |
+| 3. Multi-Model | 5d | MED | Phase 2 | **6.5** |
+| 5. Conversation | 1w | MED | Phase 4 | **6.0** |
+| 6. Fine-Tuning | 2w | MED | Phase 5 | **5.0** |
+| 7. Education | 2w | MED | Phase 6 | **4.5** |
+| 8. Research | Ongoing | LOW | Phase 7 | **3.0** |
+
+## Not in Scope (Explicit Boundaries)
+
+| Feature | Why Excluded |
+|---------|--------------|
+| Model training from scratch | Focus is visualization, not training |
+| Production API server | Research tool, not production service |
+| Mobile app | Desktop-first, web dashboard covers mobile |
+| Real-time collaboration | Single-user tool for now |
+| Plugin system | Premature optimization |
+| GPU cluster support | Single-machine focus |
+
+## Technical Debt to Address
+
+| Debt | Phase to Address | Fix |
+|------|------------------|-----|
+| Mock archive (10 docs) | Phase 1 | Replace with real data |
+| Batch inference only | Phase 2 | Add streaming |
+| Single model hardcoded | Phase 3 | Multi-model architecture |
+| No persistence | Phase 4 | Add database layer |
+| TUI only | Phase 4 | Web dashboard |
+| No tests | Phase 1 | Add pytest suite |
 
 ## Recommended Order
 
