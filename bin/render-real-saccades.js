@@ -312,10 +312,12 @@ function renderRealSaccades() {
         // Combined score: attention weight × semantic relevance
         const intensity = Math.min(1, attnIntensity * (0.3 + semSim * 0.7));
 
-        // Color: high similarity = bright cyan, low = dim gray
-        const r = semSim > 0.3 ? Math.floor(100 + semSim * 155) : 100;
-        const g = semSim > 0.3 ? Math.floor(200 + semSim * 55) : 100;
-        const b = semSim > 0.3 ? 255 : Math.floor(100 + semSim * 100);
+        // Color by layer with semantic similarity affecting brightness
+        const layerColor = layer === 'embed' ? embedColor : layerColors[layer % layerColors.length];
+        const brightness = 0.4 + semSim * 0.6; // Semantic similarity affects brightness
+        const r = Math.floor(layerColor[0] * brightness);
+        const g = Math.floor(layerColor[1] * brightness);
+        const b = Math.floor(layerColor[2] * brightness);
 
         for (let i = 0; i <= steps; i++) {
             const t = i / steps;
@@ -356,6 +358,55 @@ function renderRealSaccades() {
             }
         }
     }
+
+    // Draw layer legend (bottom right)
+    const legendX = width - 120;
+    const legendY = height - 100;
+    const legendLayers = [
+        { name: 'EMB', color: embedColor },
+        { name: 'L0', color: layerColors[0] },
+        { name: 'L1', color: layerColors[1] },
+        { name: 'L2', color: layerColors[2] },
+        { name: 'L3', color: layerColors[3] },
+        { name: 'L4', color: layerColors[4] },
+        { name: 'L5', color: layerColors[5] }
+    ];
+
+    legendLayers.forEach((item, i) => {
+        const ly = legendY + i * 12;
+        // Color swatch
+        for (let dy = 0; dy < 8; dy++) {
+            for (let dx = 0; dx < 8; dx++) {
+                const px = legendX + dx;
+                const py = ly + dy;
+                if (px >= 0 && px < width && py >= 0 && py < height) {
+                    const idx = (py * width + px) * 4;
+                    pixels[idx] = item.color[0];
+                    pixels[idx + 1] = item.color[1];
+                    pixels[idx + 2] = item.color[2];
+                    pixels[idx + 3] = 255;
+                }
+            }
+        }
+        // Label
+        for (let li = 0; li < item.name.length; li++) {
+            for (let dy = 0; dy < 8; dy++) {
+                for (let dx = 0; dx < 5; dx++) {
+                    if ((dx + dy + item.name.charCodeAt(li)) % 2 === 0) {
+                        const px = legendX + 12 + li * 6 + dx;
+                        const py = ly + dy;
+                        if (px >= 0 && px < width && py >= 0 && py < height) {
+                            const idx = (py * width + px) * 4;
+                            pixels[idx] = 180;
+                            pixels[idx + 1] = 180;
+                            pixels[idx + 2] = 180;
+                            pixels[idx + 3] = 255;
+                        }
+                    }
+                }
+            }
+        }
+    });
 
     // Save as raw then convert to PNG
     const rawPath = join(OUTPUT_DIR, 'real_saccades.raw');
