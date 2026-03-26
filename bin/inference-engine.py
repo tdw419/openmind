@@ -43,6 +43,10 @@ class GlassBoxInference:
         self.attention_weights = {}
         self._register_hooks()
 
+        # Cache for document embeddings
+        self._doc_embeddings_cache = None
+        self._doc_embeddings_archive_path = None
+
         print(f"[INFERENCE] Model loaded: {sum(p.numel() for p in self.model.parameters()):,} parameters")
 
     def _register_hooks(self):
@@ -138,12 +142,32 @@ class GlassBoxInference:
             self._embed_model = SentenceTransformer(EMBEDDING_MODEL)
         return self._embed_model
 
-    def compute_document_embeddings(self, archive_docs):
-        """Pre-compute embeddings for all archive documents using sentence-transformers."""
+    def compute_document_embeddings(self, archive_docs, archive_path=None):
+        """Load pre-computed embeddings from archive or compute if not available.
+
+        Caches embeddings in memory for subsequent calls.
+        """
+        # Check if we have pre-computed embeddings
+        if archive_path:
+            embeddings_file = Path(archive_path) / 'embeddings.npy'
+            if embeddings_file.exists():
+                if self._doc_embeddings_cache is not None and self._doc_embeddings_archive_path == str(embeddings_file):
+                    print(f"[INFERENCE] Using cached document embeddings")
+                    return self._doc_embeddings_cache
+
+                print(f"[INFERENCE] Loading pre-computed embeddings from {embeddings_file}...")
+                embeddings = np.load(embeddings_file)
+                self._doc_embeddings_cache = embeddings
+                self._doc_embeddings_archive_path = str(embeddings_file)
+                return embeddings
+
+        # Fall back to computing embeddings
+        print(f"[INFERENCE] Computing semantic embeddings for {len(archive_docs)} archive documents...")
         embed_model = self._load_embedding_model()
         texts = [doc.get("text", "") for doc in archive_docs]
         # Returns normalized numpy arrays
         embeddings = embed_model.encode(texts, normalize_embeddings=True)
+        self._doc_embeddings_cache = embeddings
         return embeddings  # shape: (num_docs, embed_dim)
 
     def compute_token_embeddings(self, tokens):
@@ -164,7 +188,7 @@ class GlassBoxInference:
         best_idx = int(np.argmax(similarities))
         return best_idx, float(similarities[best_idx])
 
-    def map_attention_to_saccades(self, attention_data, cortex_manifest, archive_manifest, hidden_states=None):
+    def map_attention_to_saccades(self, attention_data, cortex_manifest, archive_manifest, hidden_states=None, archive_path=None):
         """
         Map the extracted attention patterns to spatial saccades using semantic similarity.
 
@@ -182,9 +206,8 @@ class GlassBoxInference:
         if not archive_docs or not cortex_tiles:
             return saccades
 
-        # Pre-compute document embeddings using sentence-transformers
-        print(f"[INFERENCE] Computing semantic embeddings for {len(archive_docs)} archive documents...")
-        doc_embeddings = self.compute_document_embeddings(archive_docs)
+        # Pre-compute document embeddings using sentence-transformers (with caching)
+        doc_embeddings = self.compute_document_embeddings(archive_docs, archive_path=archive_path)
 
         # Get the actual token IDs from the input
         input_ids = self.tokenizer(attention_data["input_text"], return_tensors="pt")["input_ids"][0]
@@ -272,8 +295,9 @@ def main():
     result = engine.forward_with_attention(args.query)
 
     # Map to saccades with semantic matching (sentence-transformers)
+    archive_path = archive_manifest_path.parent  # Pass archive dir for cached embeddings
     saccades = engine.map_attention_to_saccades(
-        result, cortex_manifest, archive_manifest
+        result, cortex_manifest, archive_manifest, archive_path=archive_path
     )
     result["saccades"] = saccades
 
