@@ -1,0 +1,28 @@
+# Cortex tiles (336MB - regenerate with extract-real-cortex.py)
+cortex/tile_*.bin
+
+# Generated visualizations
+visualizations/*.png
+visualizations/*.raw
+visualizations/*.json
+
+# State files
+map_state.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp

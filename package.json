@@ -1,0 +1,27 @@
+{
+  "name": "openmind",
+  "version": "1.0.0",
+  "description": "Watch an AI think - visualizes neural attention patterns with semantic routing",
+  "type": "module",
+  "main": "bin/inference-engine.py",
+  "scripts": {
+    "inference": "python3 bin/inference-engine.py",
+    "render:cortex": "node bin/render-real-cortex.js",
+    "render:saccades": "node bin/render-real-saccades.js",
+    "executive": "node bin/substrate-executive.js"
+  },
+  "keywords": [
+    "llm",
+    "attention",
+    "visualization",
+    "neural-network",
+    "transformers",
+    "semantic-routing",
+    "glass-box"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
