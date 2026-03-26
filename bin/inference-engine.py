@@ -246,6 +246,10 @@ def main():
                        help="Query to process")
     parser.add_argument("--output", "-o", type=str, default=None,
                        help="Output JSON file for attention data")
+    parser.add_argument("--export", "-e", type=str, choices=["json", "csv", "npy", "summary"],
+                       default=None, help="Export format for attention data")
+    parser.add_argument("--export-dir", type=str, default="exports",
+                       help="Directory for exported files")
     parser.add_argument("--model", "-m", type=str, default=MODEL_NAME,
                        help="Model to use")
     args = parser.parse_args()
@@ -291,6 +295,71 @@ def main():
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     Path(output_path).write_text(json.dumps(output_result, indent=2))
     print(f"\n[INFERENCE] Attention data saved: {output_path}")
+
+    # Export attention in additional formats
+    if args.export:
+        export_dir = project_root / args.export_dir
+        export_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = __import__('datetime').datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        if args.export == "json":
+            # Full JSON export (already done above)
+            pass
+
+        elif args.export == "csv":
+            import csv
+            csv_path = export_dir / f"attention_{timestamp}.csv"
+            with open(csv_path, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(["layer", "from_token", "to_token", "weight", "semantic_similarity",
+                                "doc_id", "doc_category", "from_token_text", "to_token_text"])
+                for s in saccades:
+                    writer.writerow([
+                        s['layer'], s['from_token'], s['to_token'], s['intensity'],
+                        s.get('semantic_similarity', 0), s['doc_id'], s['doc_category'],
+                        s.get('from_token_text', ''), s.get('to_token_text', '')
+                    ])
+            print(f"[EXPORT] CSV saved: {csv_path}")
+
+        elif args.export == "npy":
+            # Export attention matrices as numpy arrays
+            npy_dir = export_dir / f"attention_{timestamp}"
+            npy_dir.mkdir(parents=True, exist_ok=True)
+            for layer_data in result.get("attention", []):
+                layer_idx = layer_data["layer"]
+                connections = layer_data.get("top_connections", [])
+                if connections:
+                    # Create attention matrix from connections
+                    seq_len = layer_data.get("seq_len", 10)
+                    attn_matrix = np.zeros((seq_len, seq_len))
+                    for conn in connections:
+                        attn_matrix[conn["from_token"], conn["to_token"]] = conn["weight"]
+                    np.save(npy_dir / f"layer_{layer_idx}.npy", attn_matrix)
+            print(f"[EXPORT] NPY matrices saved: {npy_dir}/")
+
+        elif args.export == "summary":
+            summary_path = export_dir / f"attention_summary_{timestamp}.txt"
+            with open(summary_path, 'w') as f:
+                f.write(f"OpenMind Attention Summary\n")
+                f.write(f"{'='*50}\n\n")
+                f.write(f"Query: {args.query}\n")
+                f.write(f"Model: {args.model}\n")
+                f.write(f"Tokens: {result['num_tokens']}\n")
+                f.write(f"Layers: {result['num_layers']}\n")
+                f.write(f"Saccades: {len(saccades)}\n\n")
+
+                f.write(f"Top Semantic Connections:\n")
+                f.write(f"{'-'*50}\n")
+                for s in saccades[:10]:
+                    f.write(f"Layer {s['layer']}: '{s.get('from_token_text', '?')}' -> '{s.get('to_token_text', '?')}'\n")
+                    f.write(f"  Doc {s['doc_id']} ({s['doc_category']}) sim={s.get('semantic_similarity', 0):.3f}\n\n")
+
+                f.write(f"\nLayer Attention Stats:\n")
+                f.write(f"{'-'*50}\n")
+                for layer_data in result.get("attention", []):
+                    f.write(f"Layer {layer_data['layer']}: {layer_data['num_heads']} heads, "
+                           f"{len(layer_data['top_connections'])} connections\n")
+            print(f"[EXPORT] Summary saved: {summary_path}")
 
     return result
 
