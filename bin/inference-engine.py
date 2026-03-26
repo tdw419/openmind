@@ -283,6 +283,29 @@ def main():
     print(f"  Attention layers: {result['num_layers']}")
     print(f"  Saccade connections: {len(saccades)}")
 
+    # Token position indicator
+    print(f"\n  Token Stream:")
+    print(f"  " + "─" * 60)
+    input_ids = engine.tokenizer(args.query, return_tensors="pt")["input_ids"][0]
+    tokens = [engine.tokenizer.decode([tid]) for tid in input_ids.tolist()]
+
+    # Display tokens with positions in rows of 10
+    for row_start in range(0, len(tokens), 10):
+        row_tokens = tokens[row_start:row_start + 10]
+        # Position line
+        pos_line = "  "
+        for i, tok in enumerate(row_tokens):
+            pos = row_start + i
+            pos_line += f"[{pos:2d}]".ljust(8)
+        print(pos_line)
+        # Token line
+        tok_line = "  "
+        for tok in row_tokens:
+            display_tok = tok.replace('\n', '↵').replace('\t', '→')[:6].ljust(6)
+            tok_line += f"'{display_tok}' "
+        print(tok_line)
+        print()
+
     if saccades:
         print(f"\n  Top semantic connections:")
         for s in saccades[:5]:
